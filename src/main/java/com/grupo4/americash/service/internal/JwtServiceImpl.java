@@ -1,5 +1,6 @@
 package com.grupo4.americash.service.internal;
 
+
 import com.grupo4.americash.service.JwtService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -16,13 +17,13 @@ import java.util.function.Function;
 public class JwtServiceImpl implements JwtService {
 
     @Value("${jwt.secret}")
-    private String jwtSecret;
+    private String secretKey;
 
-    @Value("86400000")
+    @Value("${jwt.expiration}")
     private long expirationTime;
 
-    private SecretKey getSignInKey(){
-        byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
+    private SecretKey getSigningKey() {
+        byte[] keyBytes = secretKey.getBytes(StandardCharsets.UTF_8);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
@@ -32,7 +33,7 @@ public class JwtServiceImpl implements JwtService {
                 .subject(username)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expirationTime))
-                .signWith(getSignInKey())
+                .signWith(getSigningKey())
                 .compact();
     }
 
@@ -57,6 +58,7 @@ public class JwtServiceImpl implements JwtService {
     }
 
     private Claims extractAllClaims(String token) {
-        return Jwts.parser().verifyWith(getSignInKey()).build().parseSignedClaims(token).getPayload();
+        return Jwts.parser().verifyWith(getSigningKey()).build().parseSignedClaims(token).getPayload();
     }
+
 }

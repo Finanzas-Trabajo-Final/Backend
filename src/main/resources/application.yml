@@ -4,9 +4,9 @@ spring:
 
   datasource:
     #In this syntaxis after :goes the default value, if the environment variable is not set
-    url: ${DB_URL:jdbc:mysql://localhost:3306/finanzas_db?useSSL=false&serverTimezone=UTC}
+    url: ${DB_URL:jdbc:mysql://localhost:3306/finanzas_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true}
     username: ${DB_USER:root}
-    password: ${DB_PASS:password}
+    password: ${DB_PASS:1234}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:

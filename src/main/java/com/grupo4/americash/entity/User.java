@@ -1,15 +1,17 @@
 package com.grupo4.americash.entity;
 
 import jakarta.persistence.*;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.Set;
 
+@Entity
+@Table(name = "users")
+@NoArgsConstructor
+@AllArgsConstructor
 @Builder
-@Setter
 @Getter
+@Setter
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
