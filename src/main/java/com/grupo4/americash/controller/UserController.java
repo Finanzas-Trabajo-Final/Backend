@@ -16,7 +16,7 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/user")
-@Tag(name = "Account", description = "Endpoints for user account management")
+@Tag(name = "UserAccount", description = "Endpoints for user account management")
 @AllArgsConstructor
 public class UserController {
     private UserService userService;

@@ -12,7 +12,7 @@ public class RegisterRequest {
     @Schema(description = "Username", example = "johndoe")
     private String username;
 
-    @Schema(description = "User's email address", example = "a@example.com")
+    @Schema(description = "User's email address",  example = "johndoe@example.com")
     private String email;
 
     @Schema(description = "User's password", example = "123")
