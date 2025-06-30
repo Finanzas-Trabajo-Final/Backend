@@ -1,4 +1,4 @@
-package com.grupo4.americash.service.internal;
+package com.grupo4.americash.service.impl;
 
 
 import com.grupo4.americash.service.JwtService;

@@ -1,4 +1,4 @@
-package com.grupo4.americash.service.internal;
+package com.grupo4.americash.service.impl;
 
 import com.grupo4.americash.dto.BondDto;
 import com.grupo4.americash.dto.BondRequest;
@@ -31,8 +31,8 @@ public class BondServiceImpl implements BondService {
     }
 
     @Override
-    public Optional<Bond> createBond(BondRequest request) {
-        User user = userService.findByIdentifier(String.valueOf(request.userId()))
+    public Optional<Bond> createBond(BondRequest request, String username) {
+      User user = userService.findByUsername(username)
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
         Bond bond = Bond.builder()
