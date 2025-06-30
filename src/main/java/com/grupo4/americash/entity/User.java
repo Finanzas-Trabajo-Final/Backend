@@ -1,8 +1,9 @@
 package com.grupo4.americash.entity;
 
-    import jakarta.persistence.*;
-    import lombok.*;
-    import java.util.Set;
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.util.Set;
 
     @Entity
     @Table(name = "users")

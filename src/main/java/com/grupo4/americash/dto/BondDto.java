@@ -46,7 +46,23 @@ public record BondDto(
 
         @JsonFormat(pattern = "yyyy-MM-dd")
         @NotNull
-        LocalDate disbursementDate
+        LocalDate disbursementDate,
+
+        @NotNull
+        BigDecimal tcea,
+
+        @NotNull
+        BigDecimal trea,
+
+        @NotNull
+        BigDecimal duration,
+
+        @NotNull
+        BigDecimal modifiedDuration,
+
+        @NotNull
+        BigDecimal convexity
+
 ) {
 
     public BondDto(Bond bond) {
@@ -63,7 +79,12 @@ public record BondDto(
                 bond.getPaymentFrequencyInMonths(),
                 bond.getTotalGraceMonths(),
                 bond.getPartialGraceMonths(),
-                bond.getDisbursementDate()
+                bond.getDisbursementDate(),
+                bond.getTcea(),
+                bond.getTrea(),
+                bond.getDuration(),
+                bond.getModifiedDuration(),
+                bond.getConvexity()
         );
     }
 }

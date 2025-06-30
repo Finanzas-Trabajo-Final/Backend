@@ -3,19 +3,17 @@ package com.grupo4.americash.controller;
 import com.grupo4.americash.dto.BondDto;
 import com.grupo4.americash.dto.BondRequest;
 import com.grupo4.americash.entity.Bond;
-
+import com.grupo4.americash.entity.PaymentSchedule;
 import com.grupo4.americash.service.BondCalculationService;
 import com.grupo4.americash.service.BondService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.math.BigDecimal;
+import java.util.List;
 
 @RestController
 @Tag(name = "Bonds", description = "Endpoints for managing bonds")
@@ -26,13 +24,23 @@ public class BondController {
     private BondCalculationService bondCalculationService;
 
     @PostMapping
-    public ResponseEntity<BondDto>createBond(@Valid @RequestBody BondRequest bondRequest,
-                                             @AuthenticationPrincipal UserDetails userDetails) {
-        String username = userDetails.getUsername();
-        Bond bond = bondService.createBond(bondRequest, username)
+    public ResponseEntity<BondDto>createBond(@Valid @RequestBody BondRequest bondRequest) {
+        Bond bond = bondService.createBond(bondRequest)
                 .orElseThrow(() -> new RuntimeException("Error creating bond"));
 
         return ResponseEntity.ok(new BondDto(bond));
     }
+
+    // Get full payment schedule
+    @GetMapping("/{id}/schedule")
+    public ResponseEntity<List<PaymentSchedule>> getSchedule(@PathVariable Long id) {
+        Bond bond = bondService.getBondById(id)
+                .orElseThrow(() -> new RuntimeException("Bond not found"));
+        List<PaymentSchedule> schedule = bondCalculationService.generateSchedule(bond);
+        return ResponseEntity.ok(schedule);
+    }
+
+
+
 
 }

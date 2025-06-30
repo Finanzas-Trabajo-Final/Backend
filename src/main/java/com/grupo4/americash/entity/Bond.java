@@ -1,13 +1,13 @@
 package com.grupo4.americash.entity;
 
-    import jakarta.persistence.*;
-    import lombok.*;
+import jakarta.persistence.*;
+import lombok.*;
 
-    import java.math.BigDecimal;
-    import java.time.LocalDate;
-    import com.grupo4.americash.entity.User;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
 
-    @Entity
+@Entity
     @Table(name = "bonds")
     @NoArgsConstructor
     @AllArgsConstructor
@@ -49,10 +49,37 @@ package com.grupo4.americash.entity;
         private int totalGraceMonths;
         private int partialGraceMonths;
 
+
         @Column(nullable = false)
         private LocalDate disbursementDate;
 
         @ManyToOne(fetch = FetchType.LAZY)
         @JoinColumn(name = "user_id") // optional: track who created it
         private User user;
+
+        @OneToMany(mappedBy = "bond", cascade = CascadeType.ALL, orphanRemoval = true)
+        private List<PaymentSchedule> schedule;
+
+        @Column(precision = 12, scale = 7)
+        private BigDecimal modifiedDuration;
+
+        @Column(precision = 12, scale = 7)
+        private BigDecimal tcea;
+
+        @Column(precision = 12, scale = 7)
+        private BigDecimal trea;
+
+        @Column(precision = 12, scale = 7)
+        private BigDecimal duration;
+
+        @Column(precision = 12, scale = 7)
+        private BigDecimal convexity;
+
+
+        public void setSchedule(List<PaymentSchedule> schedule) {
+            this.schedule = schedule;
+            for (PaymentSchedule p : schedule) {
+                p.setBond(this);
+            }
+    }
     }
