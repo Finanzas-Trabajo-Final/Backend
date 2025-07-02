@@ -46,9 +46,32 @@ import java.util.List;
         @Column(nullable = false)
         private int paymentFrequencyInMonths;
 
+        @Column(nullable = false)
         private int totalGraceMonths;
+
+        @Column(nullable = false)
         private int partialGraceMonths;
 
+        @Column(precision = 5, scale = 4)
+        private BigDecimal discountRate;
+
+        @Column(precision = 5, scale = 4)
+        private BigDecimal incomeTaxRate;
+
+        @Column(precision = 5, scale = 4)
+        private BigDecimal premiumPercentage;
+
+        @Column(precision = 5, scale = 4)
+        private BigDecimal structuringCostPercentage;
+
+        @Column(precision = 5, scale = 4)
+        private BigDecimal placementCostPercentage;
+
+        @Column(precision = 5, scale = 4)
+        private BigDecimal flotationCostPercentage;
+
+        @Column(precision = 5, scale = 4)
+        private BigDecimal cavaliCostPercentage;
 
         @Column(nullable = false)
         private LocalDate disbursementDate;
@@ -59,6 +82,8 @@ import java.util.List;
 
         @OneToMany(mappedBy = "bond", cascade = CascadeType.ALL, orphanRemoval = true)
         private List<PaymentSchedule> schedule;
+
+
 
         @Column(precision = 12, scale = 7)
         private BigDecimal modifiedDuration;

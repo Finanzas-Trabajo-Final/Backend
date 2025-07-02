@@ -54,6 +54,13 @@ public class BondServiceImpl implements BondService {
                 .totalGraceMonths(request.totalGraceMonths())
                 .partialGraceMonths(request.partialGraceMonths())
                 .disbursementDate(request.disbursementDate())
+                .discountRate(request.discountRate())
+                .incomeTaxRate(request.incomeTaxRate())
+                .premiumPercentage(request.premiumPercentage())
+                .structuringCostPercentage(request.structuringCostPercentage())
+                .placementCostPercentage(request.placementCostPercentage())
+                .flotationCostPercentage(request.flotationCostPercentage())
+                .cavaliCostPercentage(request.cavaliCostPercentage())
                 .user(user)
                 .build();
 
@@ -109,4 +116,5 @@ public class BondServiceImpl implements BondService {
                 .map(BondDto::new)
                 .toList();
     }
+
 }

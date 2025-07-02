@@ -91,23 +91,39 @@ public class BondCalculationServiceImpl implements BondCalculationService {
 
     @Override
     public BigDecimal calculateConvexity(Bond bond) {
-        List<PaymentSchedule> schedule = generateSchedule(bond);
-        BigDecimal rate = bond.getAnnualInterestRate().divide(BigDecimal.valueOf(12), mc);
+        List<PaymentSchedule> schedule = new ArrayList<>();
+        BigDecimal interestRate = bond.getAnnualInterestRate()
+                .divide(BigDecimal.valueOf(12), mc);
+        BigDecimal faceValue = bond.getFaceValue();
+        int periods = bond.getTermInMonths() / bond.getPaymentFrequencyInMonths();
+
+        for (int i = 1; i <= periods; i++) {
+            BigDecimal interest = faceValue.multiply(interestRate, mc);
+            BigDecimal amortization = (i == periods) ? faceValue : BigDecimal.ZERO;
+            BigDecimal total = interest.add(amortization, mc);
+            schedule.add(new PaymentSchedule(i, interest, amortization, total));
+        }
+
+        // Aplicar gracia
+        schedule = gracePeriodService.applyGracePeriods(bond, schedule);
+
+        // Calcular convexidad
         BigDecimal convexity = BigDecimal.ZERO;
         BigDecimal denominator = BigDecimal.ZERO;
 
         for (PaymentSchedule p : schedule) {
             int t = p.getPeriod();
-            BigDecimal discount = BigDecimal.ONE.add(rate).pow(t + 2, mc);
-            BigDecimal numerator = p.getTotal().multiply(BigDecimal.valueOf(t).multiply(BigDecimal.valueOf(t + 1)), mc);
-            BigDecimal term = numerator.divide(discount, mc);
-            convexity = convexity.add(term, mc);
+            BigDecimal discount = BigDecimal.ONE.add(interestRate).pow(t + 2, mc);
+            BigDecimal numerator = p.getTotal()
+                    .multiply(BigDecimal.valueOf(t).multiply(BigDecimal.valueOf(t + 1)), mc);
+            convexity = convexity.add(numerator.divide(discount, mc), mc);
 
-            BigDecimal pv = p.getTotal().divide(BigDecimal.ONE.add(rate).pow(t, mc), mc);
+            BigDecimal pv = p.getTotal().divide(BigDecimal.ONE.add(interestRate).pow(t, mc), mc);
             denominator = denominator.add(pv, mc);
         }
 
-        return convexity.divide(denominator.multiply(BigDecimal.valueOf(Math.pow(1 + rate.doubleValue(), 2)), mc), mc)
+        BigDecimal factor = BigDecimal.valueOf(Math.pow(1 + interestRate.doubleValue(), 2));
+        return convexity.divide(denominator.multiply(factor, mc), mc)
                 .setScale(6, RoundingMode.HALF_UP);
     }
 

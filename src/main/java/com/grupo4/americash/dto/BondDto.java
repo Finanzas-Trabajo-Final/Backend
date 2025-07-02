@@ -14,6 +14,7 @@ public record BondDto(
 
         @NotBlank
         String issuer,
+        // DATOS DE ENTRADA
 
         @NotBlank
         String currency,
@@ -49,19 +50,42 @@ public record BondDto(
         LocalDate disbursementDate,
 
         @NotNull
-        BigDecimal tcea,
+        BigDecimal premiumPercentage,
 
         @NotNull
-        BigDecimal trea,
+        BigDecimal structuringCostPercentage,
+        //COSTOS INICIALES
+        @NotNull
+        BigDecimal placementCostPercentage,
 
         @NotNull
-        BigDecimal duration,
+        BigDecimal flotationCostPercentage,
 
         @NotNull
-        BigDecimal modifiedDuration,
+        BigDecimal cavaliCostPercentage,
 
-        @NotNull
-        BigDecimal convexity
+        //DATOS DE SALIDA
+
+
+
+
+
+                //INDICADORES DE RENTABILIDAD
+
+                @NotNull
+                BigDecimal tcea,
+
+                @NotNull
+                BigDecimal trea,
+
+                @NotNull
+                BigDecimal duration,
+
+                @NotNull
+                BigDecimal modifiedDuration,
+
+                @NotNull
+                BigDecimal convexity
 
 ) {
 
@@ -80,6 +104,11 @@ public record BondDto(
                 bond.getTotalGraceMonths(),
                 bond.getPartialGraceMonths(),
                 bond.getDisbursementDate(),
+                bond.getPremiumPercentage(),
+                bond.getStructuringCostPercentage(),
+                bond.getPlacementCostPercentage(),
+                bond.getFlotationCostPercentage(),
+                bond.getCavaliCostPercentage(),
                 bond.getTcea(),
                 bond.getTrea(),
                 bond.getDuration(),
