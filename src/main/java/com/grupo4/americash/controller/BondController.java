@@ -31,6 +31,13 @@ public class BondController {
 
         return ResponseEntity.ok(new BondDto(bond));
     }
+    @GetMapping("/{id}")
+    public ResponseEntity<BondDto>getBondById(@PathVariable long id){
+        Bond bond = bondService.getBondById(id)
+                .orElseThrow(() -> new RuntimeException("Bond not found"));
+
+        return ResponseEntity.ok(new BondDto(bond));
+    }
 
     // Get full payment schedule
     @GetMapping("/{id}/schedule")

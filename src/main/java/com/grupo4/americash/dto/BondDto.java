@@ -64,35 +64,7 @@ public record BondDto(
         @NotNull
         BigDecimal cavaliCostPercentage,
 
-        //DATOS DE SALIDA
-
-
-                //CALENDARIO DE PAGOS
-
-
-
-                //DEL PRRECIO ACTUAL Y UTILIDAD
-
-        //RATIOS DE DECISION
-
-
-
-                //INDICADORES DE RENTABILIDAD
-
-                @NotNull
-                BigDecimal tcea,
-
-                @NotNull
-                BigDecimal trea,
-
-                @NotNull
-                BigDecimal duration,
-
-                @NotNull
-                BigDecimal modifiedDuration,
-
-                @NotNull
-                BigDecimal convexity
+        String user
 
 ) {
 
@@ -116,11 +88,9 @@ public record BondDto(
                 bond.getPlacementCostPercentage(),
                 bond.getFlotationCostPercentage(),
                 bond.getCavaliCostPercentage(),
-                bond.getTcea(),
-                bond.getTrea(),
-                bond.getDuration(),
-                bond.getModifiedDuration(),
-                bond.getConvexity()
+                bond.getUser().getUsername()
+
         );
     }
+
 }

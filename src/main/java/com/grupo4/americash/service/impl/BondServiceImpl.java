@@ -4,12 +4,15 @@ import com.grupo4.americash.dto.BondDto;
 import com.grupo4.americash.dto.BondRequest;
 import com.grupo4.americash.entity.*;
 import com.grupo4.americash.repository.BondRepository;
+import com.grupo4.americash.repository.UserRepository;
 import com.grupo4.americash.service.BondCalculationService;
 import com.grupo4.americash.service.BondService;
 import com.grupo4.americash.service.GracePeriodService;
 import com.grupo4.americash.service.UserService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.AllArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +26,7 @@ public class BondServiceImpl implements BondService {
     private final BondRepository bondRepository;
     private final UserService userService;
     private final BondCalculationService bondCalculationService;
+    private final UserRepository userRepository;
 
     @Override
     public void deleteBond(Long id) {
@@ -35,8 +39,13 @@ public class BondServiceImpl implements BondService {
     @Override
     @Transactional
     public Optional<Bond> createBond(BondRequest request) {
-        User user = userService.findById(request.userId())
-                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        System.out.println("USERNAME FROM SECURITY CONTEXT: " + username);
+        System.out.println("ALL USERS IN DB: " + userRepository.findAll());
+        User user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
 
         Bond bond = Bond.builder()
                 .issuer(request.issuer())
@@ -58,10 +67,10 @@ public class BondServiceImpl implements BondService {
                 .placementCostPercentage(request.placementCostPercentage())
                 .flotationCostPercentage(request.flotationCostPercentage())
                 .cavaliCostPercentage(request.cavaliCostPercentage())
-                .user(user)
                 .build();
 
         // Save first to generate ID
+        bond.setUser(user);
         bond = bondRepository.save(bond);
 
         List<PaymentSchedule> schedule = bondCalculationService.generateSchedule(bond);
@@ -73,7 +82,7 @@ public class BondServiceImpl implements BondService {
         // Recalculate metrics after schedule
         bond.setTcea(bondCalculationService.calculateTCEA(bond));
         bond.setTrea(bondCalculationService.calculateTREA(bond));
-        bond.setDuration(bondCalculationService.calculateDuration(bond));
+//bond.setDuration(bondCalculationService.calculateDuration(bond));
         bond.setModifiedDuration(bondCalculationService.calculateModifiedDuration(bond));
         bond.setConvexity(bondCalculationService.calculateConvexity(bond));
 

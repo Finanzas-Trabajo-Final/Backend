@@ -18,7 +18,7 @@ public record BondRequest(
         BigDecimal commercialValue,
 
 
-        @Schema(description = "Interest rate type: 'nominal' or 'effective'", example = "nominal")
+        @Schema(description = "Interest rate type: 'nominal' or 'effective'", example = "EFECTIVA")
         String interestRateType,
 
         @Schema(description = "Annual interest rate as a percentage", example = "12.0")
@@ -68,9 +68,7 @@ public record BondRequest(
         BigDecimal flotationCostPercentage,
 
         @Schema(description = "Cavali cost percentage as a percentage", example = "0.2")
-        BigDecimal cavaliCostPercentage,
+        BigDecimal cavaliCostPercentage
 
-         @Schema(description = "ID of the user", example = "1")
-        Long userId
 ) {
 }

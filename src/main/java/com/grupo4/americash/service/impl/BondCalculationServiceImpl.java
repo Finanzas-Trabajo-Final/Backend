@@ -27,17 +27,18 @@ public class BondCalculationServiceImpl implements BondCalculationService {
 
     // Calcular TEP (Tasa Efectiva Periódica) o TNP (Tasa Nominal Periódica)
     private BigDecimal calculateTXP(Bond bond) {
-        if ("EFFECTIVE".equals(bond.getInterestRateType().name())) {
-            BigDecimal tea = bond.getAnnualInterestRate().divide(BigDecimal.valueOf(100), mc); // 12% → 0.12
-            int exponent = 360 / (bond.getPaymentFrequencyInMonths() * 30); // Ensure integer exponent
-            return BigDecimal.ONE.add(tea).pow(exponent, mc);
-        }else {
-
-            BigDecimal nominalRate = bond.getAnnualInterestRate().divide(BigDecimal.valueOf(100), mc); // 12% → 0.12
+        if ("EFECTIVA".equals(bond.getInterestRateType().name())) {
+            BigDecimal tea = BigDecimal.ONE.add(bond.getAnnualInterestRate());
+            System.out.println("TEA"+tea);
+            BigDecimal exponent = BigDecimal.valueOf(bond.getPaymentFrequencyInMonths() * 30)
+                    .divide(BigDecimal.valueOf(360), mc);
+            BigDecimal result = power(tea, exponent).subtract(BigDecimal.ONE);
+            return result ;
+        } else {
+            BigDecimal nominalRate = bond.getAnnualInterestRate(); // 12% → 0.12
             BigDecimal frequency = BigDecimal.valueOf(360).divide(BigDecimal.valueOf(bond.getPaymentFrequencyInMonths() * 30), mc);
             return nominalRate.multiply(frequency, mc).add(BigDecimal.ONE);
         }
-
     }
     private BigDecimal calculateVAN(Bond bond) {
         List<PaymentSchedule> schedule = generateSchedule(bond);
@@ -61,28 +62,42 @@ public class BondCalculationServiceImpl implements BondCalculationService {
         return BigDecimal.ZERO; // Placeholder
     }
 
-
+    private BigDecimal power(BigDecimal base, BigDecimal exponent) {
+        double baseDouble = base.doubleValue();
+        double exponentDouble = exponent.doubleValue();
+        double result = Math.pow(baseDouble, exponentDouble);
+        return BigDecimal.valueOf(result).round(mc);
+    }
 
     private BigDecimal calculateInflationAdjustment(Bond bond) {
-        // Asumimos una inflación anual del 10% para el ajuste
-        BigDecimal inflationRate = BigDecimal.valueOf(0.10);
-        BigDecimal inflationAdjustment = BigDecimal.ONE.add(inflationRate).pow(360 / (bond.getPaymentFrequencyInMonths() * 30), mc); // Ajuste por inflación anualizado
-        BigDecimal finalInflationRate = inflationAdjustment.subtract(BigDecimal.ONE);
+        BigDecimal inflationRate = BigDecimal.valueOf(0.10); // 10% anual
 
-        return finalInflationRate; // Ajuste final
+        // Días del periodo según frecuencia de pago
+        int paymentPeriodInDays = bond.getPaymentFrequencyInMonths() * 30;
 
+        // Exponente fraccional: días del período / 360
+        BigDecimal exponent = BigDecimal.valueOf(paymentPeriodInDays).divide(BigDecimal.valueOf(360), mc);
+
+        // (1 + tasa)^exponente - 1
+        BigDecimal base = BigDecimal.ONE.add(inflationRate);
+        BigDecimal adjustmentFactor = power(base, exponent);  // usa métod o pow con decimales
+        BigDecimal inflationAdjustment = adjustmentFactor.subtract(BigDecimal.ONE);
+
+        return inflationAdjustment;
     }
+
     private PaymentSchedule createPaymentSchedule(int period, BigDecimal bondValue, BigDecimal quota, BigDecimal amortization, BigDecimal inflationAdjustment, Bond bond) {
+        BigDecimal adjustment =BigDecimal.ONE.add(inflationAdjustment); // Ajuste de inflación + 1
         PaymentSchedule ps = new PaymentSchedule();
         ps.setPeriod(period);
         ps.setCoupon(BigDecimal.ZERO);
         ps.setAmortization(amortization);
         ps.setQuota(quota);
-        ps.setScheduledDateInflationAnnual(BigDecimal.valueOf(1.10));
-        ps.setScheduledDateInflationPeriod(inflationAdjustment);
+        ps.setScheduledDateInflationAnnual(BigDecimal.valueOf(0.10));
+        ps.setScheduledDateInflationPeriod(inflationAdjustment.multiply(adjustment));
         ps.setGraceType("Ninguno");
         ps.setBondValue(bondValue);
-        ps.setIndexedBondValue(bondValue.multiply(BigDecimal.valueOf(1.1))); // assumed 10%
+        ps.setIndexedBondValue(ps.getBondValue().multiply(inflationAdjustment)); // assumed 10%
         ps.setPremium(BigDecimal.ZERO);
         ps.setTaxShield(BigDecimal.ZERO);
         ps.setIssuerFlow(quota.negate().setScale(6, RoundingMode.HALF_UP));
@@ -95,11 +110,10 @@ public class BondCalculationServiceImpl implements BondCalculationService {
         return ps;
     }
 
-
+//TODO
     @Override
     public List<PaymentSchedule> generateSchedule(Bond bond) {
         List<PaymentSchedule> schedule = new ArrayList<>();
-
         BigDecimal remaining = bond.getFaceValue();
         int periods = bond.getTermInMonths() / bond.getPaymentFrequencyInMonths();
 
@@ -108,32 +122,49 @@ public class BondCalculationServiceImpl implements BondCalculationService {
             BigDecimal amortization = bond.getFaceValue().divide(BigDecimal.valueOf(periods), mc);
             BigDecimal total = interest.add(amortization, mc);
             BigDecimal rate = calculateInflationAdjustment(bond);
-            System.out.println("Bondholder Flow: " + total.setScale(6, RoundingMode.HALF_UP));
-            System.out.println("Interest: " + interest);
-            System.out.println("Amortization: " + amortization);
-            System.out.println("Total (cuota): " + total);
-            System.out.println("Rate: " + rate);
+            BigDecimal tep = calculateTXP(bond);
+
+            BigDecimal discountRate = bond.getDiscountRate();
+            int termInDays = bond.getTermInMonths() * 30;
+            BigDecimal daysDifferenceMagnitude = BigDecimal.valueOf(termInDays).divide(BigDecimal.valueOf(360), mc);
+            BigDecimal COK = power(BigDecimal.ONE.add(discountRate), daysDifferenceMagnitude).subtract(BigDecimal.ONE);
+            System.out.println("COK: "+COK);
+
             PaymentSchedule ps = new PaymentSchedule();
             ps.setPeriod(i);
             ps.setScheduledDateInflationPeriod(rate);
-            ps.setCoupon(BigDecimal.ZERO.setScale(6, RoundingMode.HALF_UP));
-            ps.setAmortization(amortization.setScale(6, RoundingMode.HALF_UP));
-            ps.setQuota(total.setScale(6, RoundingMode.HALF_UP));
+
             ps.setScheduledDateInflationAnnual(BigDecimal.valueOf(1.1));
-            // Inicializamos el tipo de gracia como "Ninguno", luego la funcion applyGracePeriods lo modificará si es necesario
             ps.setGraceType("Ninguno");
-            ps.setBondValue(bond.getFaceValue());
-            ps.setIndexedBondValue(bond.getFaceValue().multiply(BigDecimal.valueOf(1.1))); // asumimos 10%
-            ps.setPremium(BigDecimal.ZERO);
-            ps.setTaxShield(BigDecimal.ZERO);
-            ps.setIssuerFlow(total.negate().setScale(6,RoundingMode.HALF_UP)); // o lo que defina tu lógica
-            ps.setIssuerFlowWithShield(BigDecimal.ZERO);
-            ps.setBondholderFlow(total.setScale(6, RoundingMode.HALF_UP)); // <-- mejor que usar BigDecimal.ONE
-            ps.setDiscountedFlow(BigDecimal.ZERO);
-            ps.setFlowByTerm(BigDecimal.ZERO);
-            ps.setConvexityFactor(BigDecimal.ZERO);
+
+          if (i == 1) {
+              ps.setBondValue(bond.getFaceValue());
+          } else if (!schedule.isEmpty()) {
+              ps.setBondValue(schedule.get(i - 2).getIndexedBondValue());
+          }
+            ps.setIndexedBondValue(ps.getBondValue().multiply(BigDecimal.ONE.add(rate)));
+            ps.setCoupon(ps.getIndexedBondValue().negate().multiply(tep));
+            ps.setQuota(ps.getCoupon());
+
+            ps.setTaxShield(bond.getIncomeTaxRate().negate().multiply(ps.getCoupon()).setScale(4, RoundingMode.HALF_UP));
+            //TODO: cambiar el flujo para seguir esta operacin =SI(A28<=L$7,I28+K28,0)
+            ps.setIssuerFlow(total.negate().setScale(6,RoundingMode.HALF_UP));
+
+            ps.setIssuerFlowWithShield(ps.getIssuerFlow().add(ps.getTaxShield()).setScale(6, RoundingMode.HALF_UP));
+            ps.setBondholderFlow(ps.getIssuerFlow().negate());
+            ps.setDiscountedFlow(power(ps.getBondholderFlow(), BigDecimal.ONE.add(COK).multiply(BigDecimal.valueOf(i))));
+            System.out.println("FLUJO DEL EMISOR: " + ps.getIssuerFlow());
+            System.out.println("FLUJO DESCONTADO"+ps.getDiscountedFlow());
+            ps.setFlowByTerm(ps.getBondholderFlow().multiply(BigDecimal.valueOf(i)).multiply(daysDifferenceMagnitude));
+            ps.setConvexityFactor(ps.getDiscountedFlow().multiply(BigDecimal.valueOf(i)).multiply(BigDecimal.valueOf(i+1), mc));
+            System.out.println("Convexity "+ps.getConvexityFactor());
+
+
             ps.setBond(bond);
 
+            //VALORES QUE SON 0 HASTA EL ULTIMO PERIODO
+            ps.setPremium(i == periods ? bond.getPremiumPercentage().multiply(bond.getFaceValue()) : BigDecimal.ZERO);
+            ps.setAmortization(i == periods ? remaining.setScale(6, RoundingMode.HALF_UP) : amortization.setScale(6, RoundingMode.HALF_UP));
             schedule.add(ps);
         }
 
@@ -154,7 +185,7 @@ public class BondCalculationServiceImpl implements BondCalculationService {
             }
 
             BigDecimal tcea = (schedule.get(n - 1).getQuota().divide(VCI, mc)).pow(12 / bond.getPaymentFrequencyInMonths(), mc).subtract(BigDecimal.ONE);
-            System.out.println(tcea.setScale(2, RoundingMode.HALF_UP));
+            System.out.println("TCEA"+tcea.setScale(2, RoundingMode.HALF_UP));
             return BigDecimal.ZERO;
         }
 
@@ -249,10 +280,7 @@ public class BondCalculationServiceImpl implements BondCalculationService {
         return price.setScale(2, RoundingMode.HALF_UP);
     }
 
-    /**
-     * @param bond
-     * @return
-     */
+
     @Override
     public FinancialIndicatorsDto getFinancialIndicators(Bond bond) {
         // Ejemplo con valores ya calculados.
