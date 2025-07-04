@@ -1,5 +1,6 @@
 package com.grupo4.americash.entity;
 
+import com.grupo4.americash.dto.PaymentScheduleDto;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -8,13 +9,13 @@ import java.time.LocalDate;
 import java.util.List;
 
 @Entity
-    @Table(name = "bonds")
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
-    @Getter
-    @Setter
-    public class Bond {
+@Table(name = "bonds")
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@Getter
+@Setter
+public class Bond {
 
         @Id
         @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -33,11 +34,13 @@ import java.util.List;
         private BigDecimal commercialValue;
 
         @Column(nullable = false)
-        private String interestRateType; // "nominal" or "effective"
+        @Enumerated(EnumType.STRING)
+        private InterestRateType interestRateType; // "nominal" or "effective"
 
         @Column(nullable = false)
         private BigDecimal annualInterestRate;
 
+        @Column(nullable = false)
         private Integer capitalizationPeriod; // nullable if rate is effective
 
         @Column(nullable = false)
@@ -100,11 +103,4 @@ import java.util.List;
         @Column(precision = 12, scale = 7)
         private BigDecimal convexity;
 
-
-        public void setSchedule(List<PaymentSchedule> schedule) {
-            this.schedule = schedule;
-            for (PaymentSchedule p : schedule) {
-                p.setBond(this);
-            }
-    }
-    }
+}

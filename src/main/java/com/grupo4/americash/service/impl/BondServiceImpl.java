@@ -2,10 +2,7 @@ package com.grupo4.americash.service.impl;
 
 import com.grupo4.americash.dto.BondDto;
 import com.grupo4.americash.dto.BondRequest;
-import com.grupo4.americash.entity.Bond;
-import com.grupo4.americash.entity.Currency;
-import com.grupo4.americash.entity.PaymentSchedule;
-import com.grupo4.americash.entity.User;
+import com.grupo4.americash.entity.*;
 import com.grupo4.americash.repository.BondRepository;
 import com.grupo4.americash.service.BondCalculationService;
 import com.grupo4.americash.service.BondService;
@@ -46,7 +43,7 @@ public class BondServiceImpl implements BondService {
                 .faceValue(request.faceValue())
                 .commercialValue(request.commercialValue())
                 .currency(Currency.valueOf(request.currency()))
-                .interestRateType(request.interestRateType())
+                .interestRateType(InterestRateType.valueOf(request.interestRateType()))
                 .annualInterestRate(request.annualInterestRate())
                 .capitalizationPeriod(request.capitalizationPeriod())
                 .termInMonths(request.termInMonths())
@@ -97,7 +94,7 @@ public class BondServiceImpl implements BondService {
         existing.setFaceValue(request.faceValue());
         existing.setCommercialValue(request.commercialValue());
         existing.setCurrency(Currency.valueOf(request.currency()));
-        existing.setInterestRateType(request.interestRateType());
+        existing.setInterestRateType(InterestRateType.valueOf(request.interestRateType()));
         existing.setAnnualInterestRate(request.annualInterestRate());
         existing.setCapitalizationPeriod(request.capitalizationPeriod());
         existing.setTermInMonths(request.termInMonths());

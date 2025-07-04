@@ -67,6 +67,13 @@ public record BondDto(
         //DATOS DE SALIDA
 
 
+                //CALENDARIO DE PAGOS
+
+
+
+                //DEL PRRECIO ACTUAL Y UTILIDAD
+
+        //RATIOS DE DECISION
 
 
 
@@ -96,7 +103,7 @@ public record BondDto(
                 bond.getCurrency().name(),
                 bond.getFaceValue(),
                 bond.getCommercialValue(),
-                bond.getInterestRateType(),
+                bond.getInterestRateType().name(),
                 bond.getAnnualInterestRate(),
                 bond.getCapitalizationPeriod(),
                 bond.getTermInMonths(),

@@ -2,7 +2,9 @@ package com.grupo4.americash.controller;
 
 import com.grupo4.americash.dto.BondDto;
 import com.grupo4.americash.dto.BondRequest;
+import com.grupo4.americash.dto.PaymentScheduleDto;
 import com.grupo4.americash.entity.Bond;
+import com.grupo4.americash.entity.FinancialIndicators;
 import com.grupo4.americash.entity.PaymentSchedule;
 import com.grupo4.americash.service.BondCalculationService;
 import com.grupo4.americash.service.BondService;
@@ -33,12 +35,21 @@ public class BondController {
 
     // Get full payment schedule
     @GetMapping("/{id}/schedule")
-    public ResponseEntity<List<PaymentSchedule>> getSchedule(@PathVariable Long id) {
+    public ResponseEntity<List<PaymentScheduleDto>> getSchedule(@PathVariable Long id) {
         Bond bond = bondService.getBondById(id)
                 .orElseThrow(() -> new RuntimeException("Bond not found"));
+
         List<PaymentSchedule> schedule = bondCalculationService.generateSchedule(bond);
-        return ResponseEntity.ok(schedule);
+
+        // Aquí conviertes la lista de entidades a DTOs
+        List<PaymentScheduleDto> dtos = schedule.stream()
+                .map(PaymentScheduleDto::new)
+                .toList();
+
+        return ResponseEntity.ok(dtos);
     }
+
+
 
 
 

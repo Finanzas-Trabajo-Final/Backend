@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 
 @Service
@@ -21,15 +22,19 @@ public class GracePeriodServiceImpl implements GracePeriodService {
         for (int i = 0; i < schedule.size(); i++) {
             PaymentSchedule p = schedule.get(i);
             if (i < totalGrace) {
-                p.setInterest(BigDecimal.ZERO);
+                p.setQuota(BigDecimal.ZERO);
                 p.setAmortization(BigDecimal.ZERO);
-                p.setTotal(BigDecimal.ZERO);
+                p.setPremium(BigDecimal.ZERO);
+                p.setGraceType("Total");
             } else if (i < totalGrace + partialGrace) {
                 p.setAmortization(BigDecimal.ZERO);
-                p.setTotal(p.getInterest());
+                p.setGraceType("Parcial");
+            } else {
+                p.setGraceType("Ninguno");
             }
         }
 
         return schedule;
     }
+
 }
