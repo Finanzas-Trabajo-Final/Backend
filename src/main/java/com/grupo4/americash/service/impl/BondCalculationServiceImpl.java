@@ -255,7 +255,7 @@ public class BondCalculationServiceImpl implements BondCalculationService {
      */
     @Override
     public FinancialIndicatorsDto getFinancialIndicators(Bond bond) {
-        // Ejemplo con valores ya calculados. Debes completar con lógica real
+        // Ejemplo con valores ya calculados.
         return new FinancialIndicatorsDto(
                 180,
                 60,
