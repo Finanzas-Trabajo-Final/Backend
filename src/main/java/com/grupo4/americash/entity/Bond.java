@@ -1,6 +1,5 @@
 package com.grupo4.americash.entity;
 
-import com.grupo4.americash.dto.PaymentScheduleDto;
 import jakarta.persistence.*;
 import lombok.*;
 

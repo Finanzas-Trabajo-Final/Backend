@@ -1,5 +1,6 @@
 package com.grupo4.americash.service;
 
+import com.grupo4.americash.dto.FinancialIndicatorsDto;
 import com.grupo4.americash.entity.Bond;
 import com.grupo4.americash.entity.PaymentSchedule;
 
@@ -20,5 +21,7 @@ public interface BondCalculationService {
     BigDecimal calculateConvexity(Bond bond);
 
     BigDecimal calculateMaxMarketPrice(Bond bond);
+
+    FinancialIndicatorsDto getFinancialIndicators(Bond bond);
 
 }

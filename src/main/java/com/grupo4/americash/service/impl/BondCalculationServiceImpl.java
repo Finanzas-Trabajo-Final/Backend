@@ -1,5 +1,6 @@
 package com.grupo4.americash.service.impl;
 
+import com.grupo4.americash.dto.FinancialIndicatorsDto;
 import com.grupo4.americash.entity.Bond;
 import com.grupo4.americash.entity.PaymentSchedule;
 import com.grupo4.americash.service.BondCalculationService;
@@ -246,6 +247,35 @@ public class BondCalculationServiceImpl implements BondCalculationService {
         }
 
         return price.setScale(2, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * @param bond
+     * @return
+     */
+    @Override
+    public FinancialIndicatorsDto getFinancialIndicators(Bond bond) {
+        // Ejemplo con valores ya calculados. Debes completar con lógica real
+        return new FinancialIndicatorsDto(
+                180,
+                60,
+                2,
+                10,
+                BigDecimal.valueOf(0.08),
+                BigDecimal.valueOf(0.03923),
+                BigDecimal.valueOf(0.02225),
+                BigDecimal.valueOf(2.16),
+                BigDecimal.valueOf(0.93),
+                BigDecimal.valueOf(175.33),
+                BigDecimal.valueOf(76.40),
+                BigDecimal.valueOf(4.45),
+                BigDecimal.valueOf(22.39),
+                BigDecimal.valueOf(26.84),
+                BigDecimal.valueOf(4.35),
+                BigDecimal.valueOf(0.2011995),
+                BigDecimal.valueOf(0.1736642),
+                BigDecimal.valueOf(0.1922097)
+        );
     }
 
 }
