@@ -19,48 +19,53 @@ public class PaymentSchedule {
 
     private int period;
 
-    @Column(nullable = false,precision = 18, scale =6)
+    @Column(nullable = false, precision = 18, scale = 6)
     private BigDecimal scheduledDateInflationAnnual;     // Inflación Anual
 
-    @Column(nullable = false,precision = 18, scale =6)
-    private BigDecimal scheduledDateInflationPeriod;     // Inflación Semestral o de periodo
+    @Column(nullable = false, precision = 18, scale = 6)
+    private BigDecimal scheduledDateInflationPeriod;     // Inflación del período
 
     @Column(nullable = false)
-    private String graceType;                            // Plazo de Gracia ("Total", "Parcial", o "Ninguno")
+    private String graceType;                            // Tipo de gracia
 
-    @Column(nullable = false,precision = 18, scale =6)
-    private BigDecimal bondValue;                        // Bono
+    @Column(nullable = false, precision = 18, scale = 6)
+    private BigDecimal bondValue;                        // Valor nominal del bono
 
-    @Column(nullable = false,precision = 18, scale =6)
-    private BigDecimal indexedBondValue;                 // Bono Indexado
+    @Column(nullable = false, precision = 18, scale = 6)
+    private BigDecimal indexedBondValue;                 // Bono indexado por inflación
 
-    @Column(nullable = false,precision = 18, scale =6)
-    private BigDecimal coupon;                           // Cupon (Interés)
+    @Column(nullable = false, precision = 18, scale = 6)
+    private BigDecimal coupon;                           // Interés del periodo
 
-    @Column(nullable = false,precision = 18, scale =6)
-    private BigDecimal quota;                            // Cuota total
+    @Column(nullable = false, precision = 18, scale = 6)
+    private BigDecimal quota;                            // Cuota total (interés + amortización)
 
-    @Column(nullable = false,precision = 18, scale =6)
-    private BigDecimal amortization;                     // Amortización
+    @Column(nullable = false, precision = 18, scale = 6)
+    private BigDecimal amortization;                     // Amortización del capital
 
-    @Column(nullable = false,precision = 18, scale =6)
-    private BigDecimal premium;                          // Prima
+    @Column(nullable = false, precision = 18, scale = 6)
+    private BigDecimal premium;                          // Prima (último periodo)
 
-    @Column(nullable = false,precision = 18, scale =6)
-    private BigDecimal taxShield;                        // Escudo
-    @Column(nullable = false,precision = 18, scale =6)
-    private BigDecimal issuerFlow;                       // Flujo Emisor
-    @Column(nullable = false,precision = 18, scale =6)
-    private BigDecimal issuerFlowWithShield;             // Flujo Emisor c/Escudo
-    @Column(nullable = false,precision = 18, scale =6)
-    private BigDecimal bondholderFlow;                   // Flujo Bonista
-    @Column(nullable = false,precision = 18, scale =6)
+    @Column(nullable = false, precision = 18, scale = 6)
+    private BigDecimal taxShield;                        // Escudo fiscal
 
-    private BigDecimal discountedFlow;                   // Flujo Actualizado
-    @Column(nullable = false,precision = 18, scale =6)
-    private BigDecimal flowByTerm;                       // FA x Plazo
-    @Column(nullable = false,precision = 18, scale =6)
-    private BigDecimal convexityFactor;                  // Factor para Convexidad
+    @Column(nullable = false, precision = 18, scale = 6)
+    private BigDecimal issuerFlow;                       // Flujo del emisor
+
+    @Column(nullable = false, precision = 18, scale = 6)
+    private BigDecimal issuerFlowWithShield;             // Flujo del emisor con escudo
+
+    @Column(nullable = false, precision = 18, scale = 6)
+    private BigDecimal bondholderFlow;                   // Flujo del bonista
+
+    @Column(nullable = false, precision = 18, scale = 6)
+    private BigDecimal discountedFlow;                   // Flujo descontado
+
+    @Column(nullable = false, precision = 18, scale = 6)
+    private BigDecimal flowByTerm;                       // Flujo por plazo
+
+    @Column(nullable = false, precision = 18, scale = 6)
+    private BigDecimal convexityFactor;                  // Factor para convexidad
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "bond_id")
