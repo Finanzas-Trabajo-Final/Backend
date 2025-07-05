@@ -10,17 +10,7 @@ import java.util.List;
 public interface BondCalculationService {
     List<PaymentSchedule> generateSchedule(Bond bond);
 
-    BigDecimal calculateTCEA(Bond bond);
 
-    BigDecimal calculateTREA(Bond bond);
-
-    BigDecimal calculateDuration(Bond bond);
-
-    BigDecimal calculateModifiedDuration(Bond bond);
-
-    BigDecimal calculateConvexity(Bond bond);
-
-    BigDecimal calculateMaxMarketPrice(Bond bond);
 
     FinancialIndicatorsDto getFinancialIndicators(Bond bond);
 
