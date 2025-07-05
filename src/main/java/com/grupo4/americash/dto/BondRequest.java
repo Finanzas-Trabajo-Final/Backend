@@ -11,63 +11,59 @@ public record BondRequest(
         @Schema(description = "Issuer of the bond", example = "Banco de América")
         String issuer,
 
-        @Schema(description = "Face value of the bond", example = "10000.00")
+        @Schema(description = "Face value of the bond", example = "100.00")
         BigDecimal faceValue,
 
-        @Schema(description = "Commercial value (price) of the bond", example = "9800.00")
+        @Schema(description = "Commercial value (price) of the bond", example = "98.00")
         BigDecimal commercialValue,
-
 
         @Schema(description = "Interest rate type: 'nominal' or 'effective'", example = "EFECTIVA")
         String interestRateType,
 
-        @Schema(description = "Annual interest rate as a percentage", example = "12.0")
+        @Schema(description = "Annual interest rate (decimal)", example = "0.08")
         BigDecimal annualInterestRate,
 
-        @Schema(description = "Capitalization period (only for nominal rate)", example = "2")
+        @Schema(description = "Capitalization period in months", example = "2")
         Integer capitalizationPeriod,
 
-        @Schema(description = "Bond term in months", example = "12")
+        @Schema(description = "Bond term in months", example = "60")
         int termInMonths,
 
-        @Schema(description = "Payment frequency in months", example = "1")
+        @Schema(description = "Payment frequency in months", example = "6")
         int paymentFrequencyInMonths,
 
-        @Schema(description = "Number of months with total grace", example = "1")
+        @Schema(description = "Number of months with total grace", example = "0")
         int totalGraceMonths,
 
-        @Schema(description = "Number of months with partial grace", example = "1")
+        @Schema(description = "Number of months with partial grace", example = "0")
         int partialGraceMonths,
 
         @Schema(description = "Currency of the bond", example = "PEN")
         String currency,
 
-
-        @Schema(description = "Discount rate as a percentage", example = "0.20")
+        @Schema(description = "Discount rate (decimal)", example = "0.045")
         BigDecimal discountRate,
 
-        @Schema(description = "Income tax rate as a percentage", example = "0.15")
+        @Schema(description = "Income tax rate (decimal)", example = "0.30")
         BigDecimal incomeTaxRate,
 
         @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
-        @Schema(description = "Disbursement date", example = "2025-07-01")
+        @Schema(description = "Disbursement date", example = "2025-06-01")
         LocalDate disbursementDate,
 
-        //GASTOS INICIALES
-
-        @Schema(description = "Premium percentage as a percentage", example = "2.0")
+        @Schema(description = "Premium percentage (decimal)", example = "0.01")
         BigDecimal premiumPercentage,
 
-        @Schema(description = "Structuring cost percentage as a percentage", example = "0.9")
+        @Schema(description = "Structuring cost percentage (decimal)", example = "0.01")
         BigDecimal structuringCostPercentage,
 
-        @Schema(description = "Placement cost percentage as a percentage", example = "0.5")
+        @Schema(description = "Placement cost percentage (decimal)", example = "0.0025")
         BigDecimal placementCostPercentage,
 
-        @Schema(description = "Flotation cost percentage as a percentage", example = "0.3")
+        @Schema(description = "Flotation cost percentage (decimal)", example = "0.0045")
         BigDecimal flotationCostPercentage,
 
-        @Schema(description = "Cavali cost percentage as a percentage", example = "0.2")
+        @Schema(description = "Cavali cost percentage (decimal)", example = "0.005")
         BigDecimal cavaliCostPercentage
 
 ) {
