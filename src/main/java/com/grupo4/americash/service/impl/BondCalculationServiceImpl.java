@@ -122,11 +122,16 @@ public class BondCalculationServiceImpl implements BondCalculationService {
             ps.setCoupon(ps.getIndexedBondValue().negate().multiply(tep));
 
 
-            if(i== periods) ps.setQuota(ps.getCoupon().add(ps.getAmortization()));
-            else ps.setQuota(ps.getCoupon());
+
+            //VALORES QUE SON 0 HASTA EL ULTIMO PERIODO
+            ps.setPremium(i == periods ? bond.getPremiumPercentage().multiply(bond.getFaceValue()) : BigDecimal.ZERO);
+            ps.setAmortization(i == periods ? ps.getIndexedBondValue().negate().setScale(6, RoundingMode.HALF_UP) : BigDecimal.ZERO);
+
+            ps.setQuota(i == periods ? ps.getAmortization().add(ps.getCoupon()) : ps.getCoupon());
 
             ps.setTaxShield(bond.getIncomeTaxRate().negate().multiply(ps.getCoupon()).setScale(4, RoundingMode.HALF_UP));
-            //TODO: cambiar el flujo para seguir esta operacin =SI(A28<=L$7,I28+K28,0)
+
+
 
             ps.setIssuerFlow(ps.getQuota().add(ps.getPremium() != null ? ps.getPremium() : BigDecimal.ZERO));
             ps.setIssuerFlowWithShield(ps.getIssuerFlow().add(ps.getTaxShield()).setScale(6, RoundingMode.HALF_UP));
@@ -140,11 +145,8 @@ public class BondCalculationServiceImpl implements BondCalculationService {
 
 
             ps.setBond(bond);
-
-            //VALORES QUE SON 0 HASTA EL ULTIMO PERIODO
-            ps.setPremium(i == periods ? bond.getPremiumPercentage().multiply(bond.getFaceValue()) : BigDecimal.ZERO);
-            ps.setAmortization(i == periods ? ps.getIndexedBondValue().negate().setScale(6, RoundingMode.HALF_UP) : BigDecimal.ZERO);
             schedule.add(ps);
+
 
 
         }

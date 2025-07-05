@@ -80,11 +80,9 @@ public class BondServiceImpl implements BondService {
         bond.setSchedule(schedule); // Optional: only if Bond entity has schedule list
 
         // Recalculate metrics after schedule
-        bond.setTcea(bondCalculationService.calculateTCEA(bond));
-        bond.setTrea(bondCalculationService.calculateTREA(bond));
+
 //bond.setDuration(bondCalculationService.calculateDuration(bond));
-        bond.setModifiedDuration(bondCalculationService.calculateModifiedDuration(bond));
-        bond.setConvexity(bondCalculationService.calculateConvexity(bond));
+
 
         return Optional.of(bondRepository.save(bond)); // Persist metrics
     }
