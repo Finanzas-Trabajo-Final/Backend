@@ -4,7 +4,6 @@ import com.grupo4.americash.dto.FinancialIndicatorsDto;
 import com.grupo4.americash.entity.Bond;
 import com.grupo4.americash.entity.PaymentSchedule;
 import com.grupo4.americash.service.BondCalculationService;
-import com.grupo4.americash.service.GracePeriodService;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -17,10 +16,10 @@ import java.util.List;
 @Service
 @AllArgsConstructor
 public class BondCalculationServiceImpl implements BondCalculationService {
-    private final GracePeriodService gracePeriodService;
+
 
     // Configuración de precisión y redondeo para cálculos financieros
-    private final MathContext mc = new MathContext(18, RoundingMode.HALF_UP);
+    private final MathContext mc = new MathContext(6, RoundingMode.HALF_UP);
 
 
            // OPERACIONES REUTILIZABLES
@@ -45,7 +44,7 @@ public class BondCalculationServiceImpl implements BondCalculationService {
             int periods = BigDecimal.valueOf(periodsPerYear).multiply(BigDecimal.valueOf(bond.getTermInYears())).intValue();
             System.out.println("PERIODS: "+periods);
             System.out.println("NOMINAL RATE: "+nominalRate);
-            BigDecimal nominalRatePerPeriod = nominalRate.divide(BigDecimal.valueOf(periodsPerYear));
+            BigDecimal nominalRatePerPeriod = nominalRate.divide(BigDecimal.valueOf(periodsPerYear).round(mc), mc);
             System.out.println("PERIODS PER YEAR: "+nominalRatePerPeriod);
             return nominalRate.divide(BigDecimal.valueOf(periods), mc);
         }
@@ -97,9 +96,93 @@ public class BondCalculationServiceImpl implements BondCalculationService {
         return inflationAdjustment;
     }
 
-//TODO
     @Override
     public List<PaymentSchedule> generateSchedule(Bond bond) {
+        List<PaymentSchedule> schedule = new ArrayList<>();
+
+        int couponFrequency = bond.getPaymentFrequencyInMonths()*30;
+        int periodsPerYear = 360 / couponFrequency;
+
+        int capitalizationPeriod = bond.getCapitalizationPeriod() * 30; // Convertir a días
+
+        int periods = BigDecimal.valueOf(periodsPerYear).multiply(BigDecimal.valueOf(bond.getTermInYears())).intValue();
+
+        BigDecimal rate = calculateInflationAdjustment(bond);
+        BigDecimal tep = calculateTXP(bond);
+
+        BigDecimal initialCostsBothPercentage = bond.getStructuringCostPercentage().add(bond.getPlacementCostPercentage()).add(bond.getFlotationCostPercentage().add(bond.getCavaliCostPercentage())) ;
+        BigDecimal initialCostsPercentageBondHolder =bond.getStructuringCostPercentage().add(bond.getPlacementCostPercentage());
+
+        BigDecimal discountRate = bond.getDiscountRate();
+        int paymentFrequencyInDays = bond.getPaymentFrequencyInMonths() * 30;
+        BigDecimal daysDifferenceMagnitude = BigDecimal.valueOf(paymentFrequencyInDays).divide(BigDecimal.valueOf(360), mc);
+
+        BigDecimal COK = power(BigDecimal.ONE.add(discountRate), daysDifferenceMagnitude).subtract(BigDecimal.ONE);
+
+        int totalGracePeriods = periods / bond.getTotalGraceMonths() ;
+        int partialGracePeriods = periods/ bond.getPartialGraceMonths() ;
+        System.out.println("TOTAL GRACE PERIODS: " + totalGracePeriods + ", PARTIAL GRACE PERIODS: " + partialGracePeriods);
+        for (int i = 1; i <= periods; i++) {
+            PaymentSchedule ps = new PaymentSchedule();
+            ps.setPeriod(i);
+            ps.setScheduledDateInflationAnnual(BigDecimal.valueOf(0.1));
+            ps.setScheduledDateInflationPeriod(rate.setScale(4, RoundingMode.HALF_UP));
+            if (i < totalGracePeriods) {
+                ps.setQuota(BigDecimal.ZERO);
+                ps.setAmortization(BigDecimal.ZERO);
+                ps.setPremium(BigDecimal.ZERO);
+                ps.setGraceType("T");
+            } else if (i < totalGracePeriods + partialGracePeriods) {
+                ps.setAmortization(BigDecimal.ZERO);
+                ps.setGraceType("P");
+            } else {
+                ps.setGraceType("S");
+            }
+            //INICIALIZAR VALORES
+              if (i == 1) {
+                  ps.setBondValue(bond.getFaceValue());
+              } else if (!schedule.isEmpty()) {
+                  ps.setBondValue(schedule.get(i - 2).getIndexedBondValue().setScale(6, RoundingMode.HALF_UP));
+              }
+            ps.setIndexedBondValue(ps.getBondValue().multiply(BigDecimal.ONE.add(rate)).setScale(6, RoundingMode.HALF_UP));
+            ps.setCoupon(ps.getIndexedBondValue().negate().multiply(tep).setScale(6, RoundingMode.HALF_UP));
+
+
+
+            //VALORES QUE SON 0 HASTA EL ULTIMO PERIODO
+            ps.setPremium(i == periods ? bond.getPremiumPercentage().multiply(bond.getFaceValue().negate()) : BigDecimal.ZERO);
+            ps.setAmortization(i == periods ? ps.getIndexedBondValue().negate().setScale(6, RoundingMode.HALF_UP) : BigDecimal.ZERO);
+            ps.setQuota(i == periods ? ps.getAmortization().add(ps.getCoupon()).setScale(6, RoundingMode.HALF_UP) : ps.getCoupon().setScale(6, RoundingMode.HALF_UP));
+            ps.setTaxShield(bond.getIncomeTaxRate().negate().multiply(ps.getCoupon()).setScale(6, RoundingMode.HALF_UP));
+
+            //FLUJOS
+            ps.setIssuerFlow(ps.getQuota().add(ps.getPremium() != null ? ps.getPremium() : BigDecimal.ZERO));
+            ps.setIssuerFlowWithShield(ps.getIssuerFlow().add(ps.getTaxShield()).setScale(6, RoundingMode.HALF_UP));
+            ps.setBondholderFlow(ps.getIssuerFlow().negate().setScale(6, RoundingMode.HALF_UP));
+
+            //flujo bonista/(1+COKSEMESTRAL)^i
+            BigDecimal denominator = BigDecimal.ONE.add(COK);
+
+            ps.setDiscountedFlow(ps.getBondholderFlow().divide(power(denominator, BigDecimal.valueOf(i)), mc));
+            ps.setFlowByTerm(ps.getDiscountedFlow().multiply(BigDecimal.valueOf(i)).multiply(daysDifferenceMagnitude).setScale(6, RoundingMode.HALF_UP));
+            ps.setConvexityFactor(ps.getDiscountedFlow().multiply(BigDecimal.valueOf(i)).multiply(BigDecimal.valueOf(i+1), mc));
+
+            //Asignar valores en la entidad
+
+            ps.setBond(bond);
+            schedule.add(ps);
+        }
+
+
+        return schedule;
+    }
+
+
+
+    @Override
+    public FinancialIndicatorsDto getFinancialIndicators(Bond bond) {
+
+
         List<PaymentSchedule> schedule = new ArrayList<>();
 
         int couponFrequency = bond.getPaymentFrequencyInMonths()*30;
@@ -124,64 +207,7 @@ public class BondCalculationServiceImpl implements BondCalculationService {
 
         for (int i = 1; i <= periods; i++) {
 
-
-            PaymentSchedule ps = new PaymentSchedule();
-            ps.setPeriod(i);
-            ps.setScheduledDateInflationPeriod(rate);
-            ps.setScheduledDateInflationAnnual(BigDecimal.valueOf(0.1));
-            ps.setGraceType("S");
-              if (i == 1) {
-                  ps.setBondValue(bond.getFaceValue());
-              } else if (!schedule.isEmpty()) {
-                  ps.setBondValue(schedule.get(i - 2).getIndexedBondValue());
-              }
-            ps.setIndexedBondValue(ps.getBondValue().multiply(BigDecimal.ONE.add(rate)));
-            ps.setCoupon(ps.getIndexedBondValue().negate().multiply(tep));
-
-
-
-            //VALORES QUE SON 0 HASTA EL ULTIMO PERIODO
-            ps.setPremium(i == periods ? bond.getPremiumPercentage().multiply(bond.getFaceValue().negate()) : BigDecimal.ZERO);
-            ps.setAmortization(i == periods ? ps.getIndexedBondValue().negate().setScale(6, RoundingMode.HALF_UP) : BigDecimal.ZERO);
-
-            ps.setQuota(i == periods ? ps.getAmortization().add(ps.getCoupon()) : ps.getCoupon());
-
-            ps.setTaxShield(bond.getIncomeTaxRate().negate().multiply(ps.getCoupon()).setScale(4, RoundingMode.HALF_UP));
-
-
-
-            ps.setIssuerFlow(ps.getQuota().add(ps.getPremium() != null ? ps.getPremium() : BigDecimal.ZERO));
-            ps.setIssuerFlowWithShield(ps.getIssuerFlow().add(ps.getTaxShield()).setScale(6, RoundingMode.HALF_UP));
-            ps.setBondholderFlow(ps.getIssuerFlow().negate());
-
-                //flujo bonista/(1+COKSEMESTRAL)^i
-            BigDecimal denominator = BigDecimal.ONE.add(COK);
-
-            ps.setDiscountedFlow(ps.getBondholderFlow().divide(power(denominator, BigDecimal.valueOf(i)), mc));
-
-            ps.setFlowByTerm(ps.getDiscountedFlow().multiply(BigDecimal.valueOf(i)).multiply(daysDifferenceMagnitude));
-
-            ps.setConvexityFactor(ps.getDiscountedFlow().multiply(BigDecimal.valueOf(i)).multiply(BigDecimal.valueOf(i+1), mc));
-
-
-
-            ps.setBond(bond);
-            schedule.add(ps);
-
-
-
-
         }
-
-
-        return gracePeriodService.applyGracePeriods(bond, schedule);
-    }
-
-
-
-    @Override
-    public FinancialIndicatorsDto getFinancialIndicators(Bond bond) {
-        // Ejemplo con valores ya calculados.
         return new FinancialIndicatorsDto(
                 180,
                 60,

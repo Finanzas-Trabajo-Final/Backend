@@ -7,7 +7,6 @@ import com.grupo4.americash.repository.BondRepository;
 import com.grupo4.americash.repository.UserRepository;
 import com.grupo4.americash.service.BondCalculationService;
 import com.grupo4.americash.service.BondService;
-import com.grupo4.americash.service.GracePeriodService;
 import com.grupo4.americash.service.UserService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.AllArgsConstructor;
@@ -22,7 +21,6 @@ import java.util.Optional;
 @Service
 @AllArgsConstructor
 public class BondServiceImpl implements BondService {
-    private final GracePeriodService gracePeriodService;
     private final BondRepository bondRepository;
     private final UserService userService;
     private final BondCalculationService bondCalculationService;
@@ -74,14 +72,10 @@ public class BondServiceImpl implements BondService {
         bond = bondRepository.save(bond);
 
         List<PaymentSchedule> schedule = bondCalculationService.generateSchedule(bond);
-        schedule = gracePeriodService.applyGracePeriods(bond, schedule);
 
-        // Save to bond if you want
-        bond.setSchedule(schedule); // Optional: only if Bond entity has schedule list
 
-        // Recalculate metrics after schedule
+        bond.setSchedule(schedule);
 
-//bond.setDuration(bondCalculationService.calculateDuration(bond));
 
 
         return Optional.of(bondRepository.save(bond)); // Persist metrics
@@ -96,7 +90,6 @@ public class BondServiceImpl implements BondService {
     public Optional<Bond> updateBond(Long id, BondRequest request) {
         Bond existing = bondRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Bond not found"));
-
         existing.setIssuer(request.issuer());
         existing.setFaceValue(request.faceValue());
         existing.setCommercialValue(request.commercialValue());
@@ -109,16 +102,12 @@ public class BondServiceImpl implements BondService {
         existing.setTotalGraceMonths(request.totalGraceMonths());
         existing.setPartialGraceMonths(request.partialGraceMonths());
         existing.setDisbursementDate(request.disbursementDate());
-
         return Optional.of(bondRepository.save(existing));
     }
 
     @Override
     public List<BondDto> getBondsByUserId(Long userId) {
-        return bondRepository.findByUserId(userId)
-                .stream()
-                .map(BondDto::new)
-                .toList();
+        return bondRepository.findByUserId(userId).stream().map(BondDto::new).toList();
     }
 
 }
