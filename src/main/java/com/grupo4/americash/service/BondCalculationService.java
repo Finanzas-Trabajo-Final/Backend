@@ -12,6 +12,6 @@ public interface BondCalculationService {
 
 
 
-    FinancialIndicatorsDto getFinancialIndicators(Bond bond);
+    FinancialIndicatorsDto getFinancialIndicators(Long bondId);
 
 }

@@ -58,7 +58,7 @@ public class BondController {
     public ResponseEntity<FinancialIndicatorsDto> getIndicators(@PathVariable Long id) {
         Bond bond = bondService.getBondById(id)
                 .orElseThrow(() -> new RuntimeException("Bond not found"));
-        return ResponseEntity.ok(bondCalculationService.getFinancialIndicators(bond));
+        return ResponseEntity.ok(bondCalculationService.getFinancialIndicators(id));
     }
 
 

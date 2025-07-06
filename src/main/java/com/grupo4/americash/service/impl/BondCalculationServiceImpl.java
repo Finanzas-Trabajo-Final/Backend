@@ -3,6 +3,8 @@ package com.grupo4.americash.service.impl;
 import com.grupo4.americash.dto.FinancialIndicatorsDto;
 import com.grupo4.americash.entity.Bond;
 import com.grupo4.americash.entity.PaymentSchedule;
+import com.grupo4.americash.repository.BondRepository;
+import com.grupo4.americash.repository.PaymentScheduleRepository;
 import com.grupo4.americash.service.BondCalculationService;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -16,7 +18,8 @@ import java.util.List;
 @Service
 @AllArgsConstructor
 public class BondCalculationServiceImpl implements BondCalculationService {
-
+    private final BondRepository bondRepository;
+    private final PaymentScheduleRepository paymentScheduleRepository;
 
     // Configuración de precisión y redondeo para cálculos financieros
     private final MathContext mc = new MathContext(6, RoundingMode.HALF_UP);
@@ -162,7 +165,6 @@ public class BondCalculationServiceImpl implements BondCalculationService {
 
             //flujo bonista/(1+COKSEMESTRAL)^i
             BigDecimal denominator = BigDecimal.ONE.add(COK);
-
             ps.setDiscountedFlow(ps.getBondholderFlow().divide(power(denominator, BigDecimal.valueOf(i)), mc));
             ps.setFlowByTerm(ps.getDiscountedFlow().multiply(BigDecimal.valueOf(i)).multiply(daysDifferenceMagnitude).setScale(6, RoundingMode.HALF_UP));
             ps.setConvexityFactor(ps.getDiscountedFlow().multiply(BigDecimal.valueOf(i)).multiply(BigDecimal.valueOf(i+1), mc));
@@ -180,10 +182,10 @@ public class BondCalculationServiceImpl implements BondCalculationService {
 
 
     @Override
-    public FinancialIndicatorsDto getFinancialIndicators(Bond bond) {
+    public FinancialIndicatorsDto getFinancialIndicators(Long BondId) {
 
-
-        List<PaymentSchedule> schedule = new ArrayList<>();
+        Bond bond = bondRepository.findById(BondId)
+                .orElseThrow(() -> new RuntimeException("Bond not found"));
 
         int couponFrequency = bond.getPaymentFrequencyInMonths()*30;
         int periodsPerYear = 360 / couponFrequency;
@@ -194,30 +196,38 @@ public class BondCalculationServiceImpl implements BondCalculationService {
 
         BigDecimal rate = calculateInflationAdjustment(bond);
         BigDecimal tep = calculateTXP(bond);
+        System.out.println("TEP: " + tep);
 
         BigDecimal initialCostsBothPercentage = bond.getStructuringCostPercentage().add(bond.getPlacementCostPercentage()).add(bond.getFlotationCostPercentage().add(bond.getCavaliCostPercentage())) ;
-        BigDecimal initialCostsPercentageBondHolder =bond.getStructuringCostPercentage().add(bond.getPlacementCostPercentage());
+        BigDecimal initialCostsBoth = bond.getCommercialValue().multiply(initialCostsBothPercentage).setScale(6, RoundingMode.HALF_UP);
+
+        System.out.println("INITIAL COSTS BOTH: " + initialCostsBoth +"Initial Costs Percentage Both: " + initialCostsBothPercentage);
+
+        BigDecimal initialCostsPercentageBondHolder =bond.getFlotationCostPercentage().add(bond.getCavaliCostPercentage());
+        BigDecimal initialCostsBondHolder = bond.getCommercialValue().multiply(initialCostsPercentageBondHolder).setScale(6, RoundingMode.HALF_UP);
+        System.out.println("BondHolder Initial Costs: " + initialCostsBondHolder + "Initial Costs Percentage BondHolder: " + initialCostsPercentageBondHolder);
 
         BigDecimal discountRate = bond.getDiscountRate();
         int paymentFrequencyInDays = bond.getPaymentFrequencyInMonths() * 30;
         BigDecimal daysDifferenceMagnitude = BigDecimal.valueOf(paymentFrequencyInDays).divide(BigDecimal.valueOf(360), mc);
 
         BigDecimal COK = power(BigDecimal.ONE.add(discountRate), daysDifferenceMagnitude).subtract(BigDecimal.ONE);
+        List<PaymentSchedule> schedule = paymentScheduleRepository.findByBondId(BondId);
 
-
-        for (int i = 1; i <= periods; i++) {
-
-        }
+        BigDecimal totalBondholderFlow = schedule.stream()
+                .map(PaymentSchedule::getBondholderFlow)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        System.out.println("BONDHOLDER: " + totalBondholderFlow);
         return new FinancialIndicatorsDto(
-                180,
-                60,
-                2,
-                10,
-                BigDecimal.valueOf(0.08),
-                BigDecimal.valueOf(0.03923),
-                BigDecimal.valueOf(0.02225),
-                BigDecimal.valueOf(2.16),
-                BigDecimal.valueOf(0.93),
+                couponFrequency,
+                capitalizationPeriod,
+                periodsPerYear,
+                periods,
+                bond.getAnnualInterestRate(),
+                tep,
+                COK,
+                initialCostsBoth,
+                initialCostsBondHolder,
                 BigDecimal.valueOf(175.33),
                 BigDecimal.valueOf(76.40),
                 BigDecimal.valueOf(4.45),
