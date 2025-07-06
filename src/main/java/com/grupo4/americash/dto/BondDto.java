@@ -78,7 +78,7 @@ public record BondDto(
                 bond.getInterestRateType().name(),
                 bond.getAnnualInterestRate(),
                 bond.getCapitalizationPeriod(),
-                bond.getTermInMonths(),
+                bond.getTermInYears(),
                 bond.getPaymentFrequencyInMonths(),
                 bond.getTotalGraceMonths(),
                 bond.getPartialGraceMonths(),

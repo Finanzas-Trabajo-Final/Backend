@@ -43,7 +43,7 @@ public class Bond {
         private Integer capitalizationPeriod; // nullable if rate is effective
 
         @Column(nullable = false)
-        private int termInMonths;
+        private int termInYears;
 
         @Column(nullable = false)
         private int paymentFrequencyInMonths;

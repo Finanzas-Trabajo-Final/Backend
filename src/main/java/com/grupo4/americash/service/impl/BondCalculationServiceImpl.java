@@ -91,18 +91,27 @@ public class BondCalculationServiceImpl implements BondCalculationService {
     @Override
     public List<PaymentSchedule> generateSchedule(Bond bond) {
         List<PaymentSchedule> schedule = new ArrayList<>();
-        int periods = bond.getTermInMonths() / bond.getPaymentFrequencyInMonths();
+
+        int couponFrequency = bond.getPaymentFrequencyInMonths()*30;
+        int periodsPerYear = 360 / couponFrequency;
+
+        int capitalizationPeriod = bond.getCapitalizationPeriod() * 30; // Convertir a días
+
+        int periods = BigDecimal.valueOf(periodsPerYear).multiply(BigDecimal.valueOf(bond.getTermInYears())).intValue();
 
         BigDecimal rate = calculateInflationAdjustment(bond);
         BigDecimal tep = calculateTXP(bond);
+
         BigDecimal initialBothFlowValue = bond.getStructuringCostPercentage().add(bond.getPlacementCostPercentage()).add(bond.getFlotationCostPercentage().add(bond.getCavaliCostPercentage())) ;
         BigDecimal initialBondHolderFlowValue =bond.getStructuringCostPercentage().add(bond.getPlacementCostPercentage());
 
         BigDecimal discountRate = bond.getDiscountRate();
-        int termInDays = bond.getTermInMonths() * 30;
+        int termInDays = bond.getTermInYears() * 360;
         BigDecimal daysDifferenceMagnitude = BigDecimal.valueOf(termInDays).divide(BigDecimal.valueOf(360), mc);
+        System.out.println(";;;;;;"+daysDifferenceMagnitude);
         BigDecimal COK = power(BigDecimal.ONE.add(discountRate), daysDifferenceMagnitude).subtract(BigDecimal.ONE);
-        System.out.println("COK: "+COK);
+
+        System.out.println("COK: "+COK + "->>>>>>>>>>> " + discountRate + " Div" + daysDifferenceMagnitude);
 
 
         for (int i = 1; i <= periods; i++) {
@@ -112,7 +121,7 @@ public class BondCalculationServiceImpl implements BondCalculationService {
             ps.setPeriod(i);
             ps.setScheduledDateInflationPeriod(rate);
             ps.setScheduledDateInflationAnnual(BigDecimal.valueOf(1.1));
-            ps.setGraceType("Ninguno");
+            ps.setGraceType("S");
               if (i == 1) {
                   ps.setBondValue(bond.getFaceValue());
               } else if (!schedule.isEmpty()) {
@@ -124,7 +133,7 @@ public class BondCalculationServiceImpl implements BondCalculationService {
 
 
             //VALORES QUE SON 0 HASTA EL ULTIMO PERIODO
-            ps.setPremium(i == periods ? bond.getPremiumPercentage().multiply(bond.getFaceValue()) : BigDecimal.ZERO);
+            ps.setPremium(i == periods ? bond.getPremiumPercentage().multiply(bond.getFaceValue().negate()) : BigDecimal.ZERO);
             ps.setAmortization(i == periods ? ps.getIndexedBondValue().negate().setScale(6, RoundingMode.HALF_UP) : BigDecimal.ZERO);
 
             ps.setQuota(i == periods ? ps.getAmortization().add(ps.getCoupon()) : ps.getCoupon());
@@ -136,9 +145,12 @@ public class BondCalculationServiceImpl implements BondCalculationService {
             ps.setIssuerFlow(ps.getQuota().add(ps.getPremium() != null ? ps.getPremium() : BigDecimal.ZERO));
             ps.setIssuerFlowWithShield(ps.getIssuerFlow().add(ps.getTaxShield()).setScale(6, RoundingMode.HALF_UP));
             ps.setBondholderFlow(ps.getIssuerFlow().negate());
-//            ps.setDiscountedFlow(power(ps.getBondholderFlow(), BigDecimal.ONE.add(COK).multiply(BigDecimal.valueOf(i))));
-            ps.setDiscountedFlow(BigDecimal.ZERO);
 
+            //TODO
+                //flujo bonista/(1+COKSEMESTRAL)^i
+            BigDecimal denominator = BigDecimal.ONE.add(COK);
+
+            ps.setDiscountedFlow(ps.getBondholderFlow().divide(power(denominator, BigDecimal.valueOf(i)), mc));
             ps.setFlowByTerm(ps.getBondholderFlow().multiply(BigDecimal.valueOf(i)).multiply(daysDifferenceMagnitude));
             ps.setConvexityFactor(ps.getDiscountedFlow().multiply(BigDecimal.valueOf(i)).multiply(BigDecimal.valueOf(i+1), mc));
 

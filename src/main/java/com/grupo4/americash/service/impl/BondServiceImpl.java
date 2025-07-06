@@ -55,7 +55,7 @@ public class BondServiceImpl implements BondService {
                 .interestRateType(InterestRateType.valueOf(request.interestRateType()))
                 .annualInterestRate(request.annualInterestRate())
                 .capitalizationPeriod(request.capitalizationPeriod())
-                .termInMonths(request.termInMonths())
+                .termInYears(request.termInYears())
                 .paymentFrequencyInMonths(request.paymentFrequencyInMonths())
                 .totalGraceMonths(request.totalGraceMonths())
                 .partialGraceMonths(request.partialGraceMonths())
@@ -104,7 +104,7 @@ public class BondServiceImpl implements BondService {
         existing.setInterestRateType(InterestRateType.valueOf(request.interestRateType()));
         existing.setAnnualInterestRate(request.annualInterestRate());
         existing.setCapitalizationPeriod(request.capitalizationPeriod());
-        existing.setTermInMonths(request.termInMonths());
+        existing.setTermInYears(request.termInYears());
         existing.setPaymentFrequencyInMonths(request.paymentFrequencyInMonths());
         existing.setTotalGraceMonths(request.totalGraceMonths());
         existing.setPartialGraceMonths(request.partialGraceMonths());

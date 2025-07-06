@@ -23,11 +23,11 @@ public record BondRequest(
         @Schema(description = "Annual interest rate (decimal)", example = "0.08")
         BigDecimal annualInterestRate,
 
-        @Schema(description = "Capitalization period in months", example = "2")
+        @Schema(description = "Capitalization period in days", example = "60")
         Integer capitalizationPeriod,
 
-        @Schema(description = "Bond term in months", example = "60")
-        int termInMonths,
+        @Schema(description = "Bond term in months", example = "5")
+        int termInYears,
 
         @Schema(description = "Payment frequency in months", example = "6")
         int paymentFrequencyInMonths,
