@@ -30,7 +30,9 @@ public class AuthController {
     @PostMapping("/sign-in")
     @Operation(summary = "User Login", description = "Authenticates a user and returns a JWT token")
     public ResponseEntity<AuthResponse> authenticateUser(@RequestBody AuthRequest authRequest) {
-        return ResponseEntity.ok(authService.authenticate(authRequest));
+        AuthResponse authResponse = authService.authenticate(authRequest);
+        System.out.println("Generated JWT Token: " + authResponse.getToken());
+        return ResponseEntity.ok(authResponse);
     }
 
 }

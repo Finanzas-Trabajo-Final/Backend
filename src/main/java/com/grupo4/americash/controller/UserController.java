@@ -21,9 +21,15 @@ import java.util.Optional;
 public class UserController {
     private UserService userService;
 
-    @GetMapping("{identifier}")
+    @GetMapping("getbyIdentifier/{identifier}")
     public HttpEntity<UserDto>getUser(@PathVariable String identifier) {
         Optional<User> user = userService.findByIdentifier(identifier);
         return user.map(v-> ResponseEntity.ok(UserDto.fromUser(v))).orElseGet(()->ResponseEntity.notFound().build());
+    }
+    @GetMapping("getbyEmail/{email}")
+    public HttpEntity<UserDto> getUserByEmail(@PathVariable String email) {
+        Optional<User> user = userService.findByEmail(email);
+        return user.map(v -> ResponseEntity.ok(UserDto.fromUser(v)))
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 }
