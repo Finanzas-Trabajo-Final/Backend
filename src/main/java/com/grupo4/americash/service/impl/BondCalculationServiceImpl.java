@@ -252,7 +252,8 @@ public class BondCalculationServiceImpl implements BondCalculationService {
 
         int couponFrequency = bond.getPaymentFrequencyInMonths()*30;
         int periodsPerYear = 360 / couponFrequency;
-        int capitalizationPeriod = bond.getCapitalizationPeriod() * 30; // Convertir a días
+        int capitalizationPeriod = bond.getCapitalizationPeriod(); // Convertir a días
+        System.out.println(bond.getCapitalizationPeriod());
         int periods = BigDecimal.valueOf(periodsPerYear).multiply(BigDecimal.valueOf(bond.getTermInYears())).intValue();
 
 
