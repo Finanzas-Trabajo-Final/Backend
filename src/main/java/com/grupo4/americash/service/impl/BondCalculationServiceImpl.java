@@ -35,18 +35,19 @@ public class BondCalculationServiceImpl implements BondCalculationService {
             BigDecimal exponent = BigDecimal.valueOf(paymentFrequencyInMonths).divide(BigDecimal.valueOf(360), mc);
             BigDecimal result = power(tea, exponent).subtract(BigDecimal.ONE);
             return result ;
-        } else {
-            BigDecimal nominalRate = bond.getAnnualInterestRate(); // 12% → 0.12
-            int couponFrequency = bond.getPaymentFrequencyInMonths()*30;
-            int periodsPerYear = 360 / couponFrequency;
+        }else {
+            BigDecimal nominalRate = bond.getAnnualInterestRate(); // Ej: 0.12 (12% anual)
+            int capitalizationMonths = bond.getCapitalizationPeriod(); // Ej: 3 si es trimestral
+            int periodsPerYear = 360 / capitalizationMonths; // Número de capitalizaciones por año
 
-            int periods = BigDecimal.valueOf(periodsPerYear).multiply(BigDecimal.valueOf(bond.getTermInYears())).intValue();
-            System.out.println("PERIODS: "+periods);
-            System.out.println("NOMINAL RATE: "+nominalRate);
-            BigDecimal nominalRatePerPeriod = nominalRate.divide(BigDecimal.valueOf(periodsPerYear).round(mc), mc);
-            System.out.println("PERIODS PER YEAR: "+nominalRatePerPeriod);
-            return nominalRate.divide(BigDecimal.valueOf(periods), mc);
+            // TEA = (1 + TNP/m)^m - 1
+            BigDecimal onePlusRate = BigDecimal.ONE.add(nominalRate.divide(BigDecimal.valueOf(periodsPerYear), mc));
+            BigDecimal tea = power(onePlusRate, BigDecimal.valueOf(periodsPerYear)).subtract(BigDecimal.ONE);
+
+            System.out.println("TEA calculada desde TNP: " + tea);
+            return tea;
         }
+
     }
 
 
@@ -81,50 +82,51 @@ public class BondCalculationServiceImpl implements BondCalculationService {
 
         for (int i = 0; i < cashFlows.size(); i++) {
             BigDecimal numerator = cashFlows.get(i);
-            BigDecimal denominator = BigDecimal.ONE.add(discountRate).pow(i + 1, mc);
+            BigDecimal denominator = BigDecimal.ONE.add(discountRate).pow(i , mc);
             van = van.add(numerator.divide(denominator, mc));
         }
 
         return van.setScale(6, RoundingMode.HALF_UP);
     }
-    public BigDecimal calculateIRR(List<BigDecimal> cashFlows, BigDecimal initialCost) {
-        final int maxIterations = 1000;
-        final BigDecimal precision = new BigDecimal("0.00000001");
-        final MathContext mc = new MathContext(18, RoundingMode.HALF_UP);
-        BigDecimal rate = BigDecimal.valueOf(0.1); // Suposición inicial
+    private BigDecimal calculateIRRWithBisection(List<BigDecimal> cashFlows, BigDecimal initialFlow, MathContext mc) {
+        // Insertamos el flujo inicial (negativo) como primer elemento
+        List<BigDecimal> allFlows = new ArrayList<>();
+        allFlows.add(initialFlow); // Ej. -980.00
+        allFlows.addAll(cashFlows); // Flujos de schedule
 
-        List<BigDecimal> allCashFlows = new ArrayList<>();
-        allCashFlows.add(initialCost.negate());
-        allCashFlows.addAll(cashFlows);
+        BigDecimal low = BigDecimal.valueOf(-0.9999); // mínimo -99.99%
+        BigDecimal high = BigDecimal.ONE;             // máximo 100%
+        BigDecimal guess = BigDecimal.ZERO;
+        BigDecimal tolerance = new BigDecimal("0.0000001");
+        int maxIterations = 100;
 
-        for (int iteration = 0; iteration < maxIterations; iteration++) {
-            BigDecimal fValue = BigDecimal.ZERO;
-            BigDecimal fDerivative = BigDecimal.ZERO;
+        for (int i = 0; i < maxIterations; i++) {
+            guess = low.add(high).divide(BigDecimal.valueOf(2), mc);
+            BigDecimal npv = calculateNPV(allFlows, guess, mc);
 
-            for (int t = 0; t < allCashFlows.size(); t++) {
-                BigDecimal denominator = BigDecimal.ONE.add(rate).pow(t, mc);
-                BigDecimal term = allCashFlows.get(t).divide(denominator, mc);
-                fValue = fValue.add(term);
+            if (npv.abs().compareTo(tolerance) < 0) break;
 
-                if (t > 0) {
-                    BigDecimal derivativeTerm = allCashFlows.get(t)
-                            .multiply(BigDecimal.valueOf(-t))
-                            .divide(BigDecimal.ONE.add(rate).pow(t + 1, mc), mc);
-                    fDerivative = fDerivative.add(derivativeTerm);
-                }
+            if (npv.compareTo(BigDecimal.ZERO) > 0) {
+                low = guess;
+            } else {
+                high = guess;
             }
-
-            BigDecimal newRate = rate.subtract(fValue.divide(fDerivative, mc));
-            if (newRate.subtract(rate).abs().compareTo(precision) < 0) {
-                return newRate.setScale(8, RoundingMode.HALF_UP);
-            }
-
-            rate = newRate;
         }
 
-        throw new ArithmeticException("La TIR no converge.");
+        return guess;
     }
 
+    private BigDecimal calculateNPV(List<BigDecimal> flows, BigDecimal rate, MathContext mc) {
+        BigDecimal npv = BigDecimal.ZERO;
+        for (int t = 0; t < flows.size(); t++) {
+            BigDecimal denominator = BigDecimal.ONE.add(rate).pow(t, mc);
+            npv = npv.add(flows.get(t).divide(denominator, mc));
+        }
+        return npv;
+    }
+    private List<BigDecimal> negateList(List<BigDecimal> list) {
+        return list.stream().map(BigDecimal::negate).toList();
+    }
 
 
     @Override
@@ -147,15 +149,21 @@ public class BondCalculationServiceImpl implements BondCalculationService {
 
         BigDecimal cok = power(BigDecimal.ONE.add(discountRate), daysDifferenceMagnitude).subtract(BigDecimal.ONE);
 
-        int totalGracePeriods = periods / bond.getTotalGraceMonths() ;
-        int partialGracePeriods = periods/ bond.getPartialGraceMonths() ;
+
+        int totalGracePeriods = bond.getTotalGraceMonths() > 0 ? periods / bond.getTotalGraceMonths() : 0;
+        int partialGracePeriods = bond.getPartialGraceMonths() > 0 ? periods / bond.getPartialGraceMonths() : 0;
+
         System.out.println("TOTAL GRACE PERIODS: " + totalGracePeriods + ", PARTIAL GRACE PERIODS: " + partialGracePeriods);
+
         for (int i = 1; i <= periods; i++) {
             PaymentSchedule ps = new PaymentSchedule();
             ps.setPeriod(i);
             ps.setScheduledDateInflationAnnual(BigDecimal.valueOf(0.1));
             ps.setScheduledDateInflationPeriod(rate.setScale(4, RoundingMode.HALF_UP));
-            if (i < totalGracePeriods) {
+
+            if (totalGracePeriods == 0 && partialGracePeriods == 0) {
+                ps.setGraceType("S");
+            } else if (i < totalGracePeriods) {
                 ps.setQuota(BigDecimal.ZERO);
                 ps.setAmortization(BigDecimal.ZERO);
                 ps.setPremium(BigDecimal.ZERO);
@@ -254,18 +262,16 @@ public class BondCalculationServiceImpl implements BondCalculationService {
         BigDecimal initialCostsBothPercentage = bond.getStructuringCostPercentage().add(bond.getPlacementCostPercentage()).add(bond.getFlotationCostPercentage().add(bond.getCavaliCostPercentage())) ;
         BigDecimal initialCostsBoth = bond.getCommercialValue().multiply(initialCostsBothPercentage).setScale(6, RoundingMode.HALF_UP);
 
-        System.out.println("INITIAL COSTS BOTH: " + initialCostsBoth +"Initial Costs Percentage Both: " + initialCostsBothPercentage);
 
         BigDecimal initialCostsPercentageBondHolder =bond.getFlotationCostPercentage().add(bond.getCavaliCostPercentage());
         BigDecimal initialCostsBondHolder = bond.getCommercialValue().multiply(initialCostsPercentageBondHolder).setScale(6, RoundingMode.HALF_UP);
-        System.out.println("BondHolder Initial Costs: " + initialCostsBondHolder + "Initial Costs Percentage BondHolder: " + initialCostsPercentageBondHolder);
 
 
         BigDecimal period0IssuerFlow = bond.getCommercialValue().subtract(initialCostsBoth);
         BigDecimal period0BondholderFlow = bond.getCommercialValue().negate().subtract(initialCostsBondHolder);
 
 
-        System.out.println("period0IssuerFlow: " + period0IssuerFlow + " period0BondholderFlow: " + period0BondholderFlow);
+
         BigDecimal discountRate = bond.getDiscountRate();
         int paymentFrequencyInDays = bond.getPaymentFrequencyInMonths() * 30;
         BigDecimal daysDifferenceMagnitude = BigDecimal.valueOf(paymentFrequencyInDays).divide(BigDecimal.valueOf(360), mc);
@@ -273,7 +279,7 @@ public class BondCalculationServiceImpl implements BondCalculationService {
 
         // VAN
         BigDecimal van = calculateVAN(bondHolderFlow, cok);
-        System.out.println("VAN: " + van);
+
         BigDecimal utilityOrLose = period0BondholderFlow.add(van);
 
 
@@ -284,9 +290,9 @@ public class BondCalculationServiceImpl implements BondCalculationService {
         BigDecimal rate =BigDecimal.valueOf(360).divide(BigDecimal.valueOf(couponFrequency), mc);
         BigDecimal rateSquared = rate.pow(2, mc);
         BigDecimal cokSqr = BigDecimal.ONE.add(cok).pow(2,mc);
-        System.out.println("factor: " + cokSqr + " rateSquared: " + rateSquared+ " rate: " + rate);
+
         BigDecimal multipliedFactor = rateSquared.multiply(cokSqr).multiply(periodDiscountedFlow);
-        System.out.println("multipliedFactor: " + multipliedFactor+" periodDiscountedFlow: " + periodDiscountedFlow);
+
 
         BigDecimal convexity = convexityFactorPeriodFlow.divide(multipliedFactor, mc);
 
@@ -295,8 +301,32 @@ public class BondCalculationServiceImpl implements BondCalculationService {
         BigDecimal modifiedDuration = duration.divide(BigDecimal.ONE.add(cok),mc);
 
         //INDICADORES DE RENTABILIDAD
-        //BigDecimal issuerTIR = calculateIRR(bondIssuerFlow, period0IssuerFlow);
-        //System.out.println("issuerTIR: " + issuerTIR);
+        BigDecimal bondIssuerTIR = calculateIRRWithBisection(
+                negateList(bondIssuerFlow),
+                period0IssuerFlow.negate(),
+                mc
+        ).add(BigDecimal.ONE);
+
+
+        BigDecimal bondIssuerTIRWithShield = calculateIRRWithBisection(
+                negateList(bondIssuerWithShieldFlow),
+                period0IssuerFlow.negate(),
+                mc
+        ).add(BigDecimal.ONE);
+
+        BigDecimal issuerTCEA = bondIssuerTIR.pow(periodsPerYear).subtract(BigDecimal.ONE);
+
+        BigDecimal bondHolderTIR = calculateIRRWithBisection(
+                bondHolderFlow,
+                period0BondholderFlow,
+                mc
+        ).add(BigDecimal.ONE);
+
+
+        BigDecimal bondHolderTCEA = bondHolderTIR.pow(periodsPerYear).subtract(BigDecimal.ONE);
+
+        BigDecimal bondHolderTCEAWithShield = bondIssuerTIRWithShield.pow(periodsPerYear).subtract(BigDecimal.ONE);
+
 
         return new FinancialIndicatorsDto(
                 //ESTRUCTURACIÓN DEL BONO
@@ -322,9 +352,9 @@ public class BondCalculationServiceImpl implements BondCalculationService {
                 modifiedDuration,
 
                 //INDICADORES DE RENTABILIDAD
-                BigDecimal.valueOf(0.2011995),
-                BigDecimal.valueOf(0.1736642),
-                BigDecimal.valueOf(0.1922097)
+                issuerTCEA,
+                bondHolderTCEAWithShield,
+                bondHolderTCEA
         );
     }
 
